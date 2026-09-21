@@ -2993,65 +2993,171 @@
             if (ind) ind.remove();
         }
 
+        let cardCounter = 0;
+        const activeCardLanguages = {};
+        const activeCardDiseases = {};
+
+        function getDiseaseVoiceText(d, langKey) {
+            const cropName = d.crop.split(' ')[0];
+            const cleanChem = d.chemical.replace(/\(.*?\)/g, '').trim();
+            const cleanOrg = d.organic.replace(/\(.*?\)/g, '').trim();
+
+            switch(langKey) {
+                case 'en-IN':
+                    return `Crop Advisory for ${d.crop}. Disease detected is ${d.disease}. Immediate remedy: ${cleanChem}. Organic alternative: ${cleanOrg}.`;
+                case 'hi-IN':
+                    return `${d.crop} में ${d.hindi} का प्रकोप पाया गया है। रासायनिक उपचार: ${cleanChem}। जैविक उपचार: ${cleanOrg} का उपयोग करें।`;
+                case 'mewari':
+                    return `${d.crop} में ${d.hindi} रोग लाग्यो है सा। तुरंत रासायनिक उपचार: ${cleanChem} मिलाय ने छिड़क्यो। देसी इलाज खातर: ${cleanOrg} काम में लो सा।`;
+                case 'marwari':
+                    return `${d.crop} मांय ${d.hindi} रोग देख्यो गयो है सा। दवाई रो छिड़काव: ${cleanChem}। जैविक रोकथाम वास्ते: ${cleanOrg} उपयोग करो सा।`;
+                case 'malvi':
+                    return `${d.crop} में ${d.hindi} रोग लाग्यो है भाई। रासायनिक इलाज: ${cleanChem}। जैविक उपाय: ${cleanOrg} रो छिड़काव करो।`;
+                case 'gu-IN':
+                    return `${d.crop}માં ${d.hindi} રોગ જોવા મળ્યો છે. રાસાયણિક ઉપચાર: ${cleanChem}. દેશી અને જૈવિક ઉપાય: ${cleanOrg}.`;
+                case 'pa-IN':
+                    return `${d.crop} ਵਿੱਚ ${d.hindi} ਦੀ ਬਿਮਾਰੀ ਦੇਖੀ ਗਈ ਹੈ। ਰਸਾਇਣਕ ਇਲਾਜ: ${cleanChem} ਦਾ ਛਿੜਕਾਅ ਕਰੋ। ਜੈਵਿਕ ਰੋਕਥਾਮ: ${cleanOrg} ਦੀ ਵਰਤੋਂ ਕਰੋ ਜੀ।`;
+                case 'mr-IN':
+                    return `${d.crop} पिकावर ${d.hindi} रोगाचा प्रादुर्भाव झाला आहे. रासायनिक उपाय: ${cleanChem} फवारावे. सेंद्रिय पर्याय: ${cleanOrg} वापरावे.`;
+                case 'bn-IN':
+                    return `${d.crop} ফসলে ${d.hindi} রোগের আক্রমণ দেখা গেছে। রাসায়নিক প্রতিকার: ${cleanChem} স্প্রে করুন। জৈব প্রতিকার: ${cleanOrg} প্রয়োগ করুন।`;
+                case 'te-IN':
+                    return `${d.crop} పంటలో ${d.disease} తెగులు సోకింది. రసాయన నివారణ: ${cleanChem} పిచಿಕారీ చేయండి. సేంద్రీయ పద్ధతి: ${cleanOrg} వాడండి.`;
+                case 'ta-IN':
+                    return `${d.crop} பயிரில் ${d.disease} நோய் தாக்கியுள்ளது. இரசாயன சிகிச்சை: ${cleanChem} தெளிக்கவும். இயற்கை முறை: ${cleanOrg} பயன்படுத்தவும்.`;
+                case 'kn-IN':
+                    return `${d.crop} ಬೆಳೆಯಲ್ಲಿ ${d.disease} ರೋಗ ಕಂಡುಬಂದಿದೆ. ರಾಸಾಯನಿಕ ಚಿಕಿತ್ಸೆ: ${cleanChem} ಸಿಂಪಡಿಸಿ. ಸಾವಯವ ಪರಿಹಾರ: ${cleanOrg} ಬಳಸಿ.`;
+                default:
+                    return d.audio || `${d.crop} में ${d.hindi} का प्रकोप है। ${cleanChem} छिड़कें।`;
+            }
+        }
+
         function renderDiagnosisResult(d) {
-            const langObj = SUPPORTED_LANGUAGES[currentLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
-            let advisoryToSpeak = d.audio;
-            if (currentLangKey === 'en-IN') {
-                advisoryToSpeak = d.disease + ' detected on ' + d.crop + '. ' + d.chemical;
+            cardCounter++;
+            const cardId = 'diagCard_' + cardCounter;
+            activeCardDiseases[cardId] = d;
+            activeCardLanguages[cardId] = currentLangKey || 'hi-IN';
+
+            const activeLang = activeCardLanguages[cardId];
+            const initialText = getDiseaseVoiceText(d, activeLang);
+
+            const langKeys = ['hi-IN', 'en-IN', 'mewari', 'marwari', 'malvi', 'gu-IN', 'pa-IN', 'mr-IN', 'bn-IN', 'te-IN', 'ta-IN', 'kn-IN'];
+            
+            let langPillsHtml = '';
+            for (let lk of langKeys) {
+                const info = SUPPORTED_LANGUAGES[lk];
+                const isSelected = (lk === activeLang);
+                const activeStyle = isSelected ? 'background:var(--gold); color:#000; font-weight:800;' : 'background:rgba(255,255,255,0.15); color:#fff;';
+                langPillsHtml += `<button class="card-lang-chip" id="chip_${cardId}_${lk}" onclick="switchCardVoiceLanguage('${cardId}', '${lk}')" style="border:none; border-radius:14px; padding:3px 10px; font-size:11px; cursor:pointer; white-space:nowrap; transition:all 0.2s; ${activeStyle}">${info.name}</button>`;
             }
 
-            const audioEscaped = advisoryToSpeak.replace(/'/g, "\'");
-            const html = '<div>' +
-                '<strong>Diagnosis Verified (' + langObj.name + '):</strong>' +
-                '<div class="ai-diagnosis-card">' +
-                    '<div class="diag-card-top">' +
-                        '<div class="diag-card-title">' +
-                            '<h4><i class="fa-solid fa-circle-check" style="color:var(--accent);"></i> ' + d.disease + '</h4>' +
-                            '<span>' + d.hindi + ' • <em>' + d.latin + '</em></span>' +
-                        '</div>' +
-                        '<div class="diag-badges">' +
-                            '<span class="confidence-badge"><i class="fa-solid fa-shield-check"></i> 96.4% Conf</span>' +
-                            '<span class="pathogen-pill">' + d.pathogen.toUpperCase() + '</span>' +
-                        '</div>' +
-                    '</div>' +
+            const html = `<div>
+                <strong style="color:var(--primary); font-size:14px;"><i class="fa-solid fa-circle-check" style="color:var(--accent);"></i> Diagnosis Complete & Verified:</strong>
+                <div class="ai-diagnosis-card">
+                    <div class="diag-card-top">
+                        <div class="diag-card-title">
+                            <h4>${d.disease}</h4>
+                            <span>${d.hindi} • <em>${d.latin}</em></span>
+                        </div>
+                        <div class="diag-badges">
+                            <span class="confidence-badge"><i class="fa-solid fa-shield-check"></i> 96.4% Conf</span>
+                            <span class="pathogen-pill">${d.pathogen.toUpperCase()}</span>
+                        </div>
+                    </div>
 
-                    '<div class="diag-section">' +
-                        '<strong>🌾 Target Crop:</strong> ' + d.crop +
-                    '</div>' +
-                    '<div class="diag-section">' +
-                        '<strong>⚠️ Primary Symptom:</strong> ' + d.symptoms +
-                    '</div>' +
+                    <div class="diag-section">
+                        <strong>🌾 Target Crop:</strong> ${d.crop}
+                    </div>
+                    <div class="diag-section">
+                        <strong>⚠️ Primary Symptom:</strong> ${d.symptoms}
+                    </div>
 
-                    '<div class="chemical-box">' +
-                        '<strong>💊 ICAR Chemical Remedy (Safe Dosage):</strong><br>' +
-                        d.chemical +
-                    '</div>' +
+                    <div class="chemical-box">
+                        <strong>💊 ICAR Chemical Remedy (Safe Dosage):</strong><br>
+                        ${d.chemical}
+                    </div>
 
-                    '<div class="organic-box">' +
-                        '<strong>🌱 100% Organic Alternative:</strong><br>' +
-                        d.organic +
-                    '</div>' +
+                    <div class="organic-box">
+                        <strong>🌱 100% Organic Alternative:</strong><br>
+                        ${d.organic}
+                    </div>
 
-                    '<div class="spoken-player-widget">' +
-                        '<div class="spoken-info">' +
-                            '<i class="fa-solid fa-volume-high"></i>' +
-                            '<span>Spoken Voice Advisory (' + langObj.name + ')</span>' +
-                        '</div>' +
-                        '<div style="display:flex; gap:6px;">' +
-                            '<button class="btn-play-voice" onclick="speakText(\'' + audioEscaped + '\', \'' + langObj.voiceCode + '\')">' +
-                                '<i class="fa-solid fa-play"></i> Listen Voice Fix' +
-                            '</button>' +
-                            '<button class="btn-play-voice" style="background:#e63946; color:#fff;" onclick="stopAllAudio()" title="Stop Audio">' +
-                                '<i class="fa-solid fa-stop"></i>' +
-                            '</button>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
+                    <!-- MULTILINGUAL SPOKEN ADVISORY STATION -->
+                    <div class="spoken-player-widget" style="display:flex; flex-direction:column; gap:10px; padding:14px; background:linear-gradient(135deg, #092419 0%, #123d2b 100%); border-radius:12px; border:1px solid rgba(216, 243, 220, 0.2);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div class="spoken-info" style="font-size:13px; font-weight:800; color:var(--mint); display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-volume-high" style="color:var(--gold); font-size:15px;"></i>
+                                <span>Speak Advisory in Any Language:</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button class="btn-play-voice" id="playBtn_${cardId}" onclick="playCardVoice('${cardId}')" style="background:var(--gold); color:#000; font-weight:800; padding:6px 14px; border-radius:20px; font-size:12px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 3px 10px rgba(233,196,106,0.35);">
+                                    <i class="fa-solid fa-play"></i> Listen Voice Fix
+                                </button>
+                                <button class="btn-play-voice" style="background:#e63946; color:#fff; font-weight:800; padding:6px 12px; border-radius:20px; font-size:12px; border:none; cursor:pointer;" onclick="stopAllAudio()" title="Stop Audio">
+                                    <i class="fa-solid fa-stop"></i> Stop
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 12 Language Clickable Selector Chips -->
+                        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin;">
+                            ${langPillsHtml}
+                        </div>
+
+                        <!-- Active Transcript Box -->
+                        <div id="transcriptBox_${cardId}" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:10px 14px; font-size:13px; color:#d8f3dc; line-height:1.55;">
+                            ${initialText}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
             appendBotMessage(html);
 
-            // Auto-speak advisory in the chosen language
-            speakText(advisoryToSpeak, langObj.voiceCode);
+            // Auto-speak advisory in the current language
+            const langObj = SUPPORTED_LANGUAGES[activeLang] || SUPPORTED_LANGUAGES['hi-IN'];
+            speakText(initialText, langObj.voiceCode);
+        }
+
+        function switchCardVoiceLanguage(cardId, newLangKey) {
+            activeCardLanguages[cardId] = newLangKey;
+            const d = activeCardDiseases[cardId];
+            if (!d) return;
+
+            const langKeys = ['hi-IN', 'en-IN', 'mewari', 'marwari', 'malvi', 'gu-IN', 'pa-IN', 'mr-IN', 'bn-IN', 'te-IN', 'ta-IN', 'kn-IN'];
+            for (let lk of langKeys) {
+                const chip = document.getElementById('chip_' + cardId + '_' + lk);
+                if (chip) {
+                    if (lk === newLangKey) {
+                        chip.style.background = 'var(--gold)';
+                        chip.style.color = '#000';
+                        chip.style.fontWeight = '800';
+                    } else {
+                        chip.style.background = 'rgba(255,255,255,0.15)';
+                        chip.style.color = '#fff';
+                        chip.style.fontWeight = 'normal';
+                    }
+                }
+            }
+
+            const newText = getDiseaseVoiceText(d, newLangKey);
+            const box = document.getElementById('transcriptBox_' + cardId);
+            if (box) {
+                box.innerText = newText;
+            }
+
+            const langObj = SUPPORTED_LANGUAGES[newLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
+            speakText(newText, langObj.voiceCode);
+        }
+
+        function playCardVoice(cardId) {
+            const d = activeCardDiseases[cardId];
+            const langKey = activeCardLanguages[cardId] || 'hi-IN';
+            if (!d) return;
+
+            const text = getDiseaseVoiceText(d, langKey);
+            const langObj = SUPPORTED_LANGUAGES[langKey] || SUPPORTED_LANGUAGES['hi-IN'];
+            speakText(text, langObj.voiceCode);
         }
 
         function speakText(text, voiceCode) {
