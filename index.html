@@ -1615,11 +1615,19 @@
                         </div>
                     </div>
                     <div class="chat-controls-header">
-                        <select class="dialect-select-custom" id="chatDialectSelect" onchange="changeDialect(this.value)">
-                            <option value="Mewari">🌐 Mewari (मेवाड़ी)</option>
-                            <option value="Marwari">🌐 Marwari (मारवाड़ी)</option>
-                            <option value="Malvi">🌐 Malvi (मालवी)</option>
-                            <option value="Hindi">🌐 Standard Hindi (हिंदी)</option>
+                        <select class="dialect-select-custom" id="chatDialectSelect" onchange="changeLanguage(this.value)" title="Select Language / Dialect">
+                            <option value="hi-IN">🌐 हिंदी (Hindi)</option>
+                            <option value="en-IN">🌐 English (India)</option>
+                            <option value="mewari">🌐 मेवाड़ी (Mewari - राजस्थान)</option>
+                            <option value="marwari">🌐 मारवाड़ी (Marwari - राजस्थान)</option>
+                            <option value="malvi">🌐 मालवी (Malvi - म.प्र./राज.)</option>
+                            <option value="gu-IN">🌐 ગુજરાતી (Gujarati)</option>
+                            <option value="pa-IN">🌐 ਪੰਜਾਬੀ (Punjabi)</option>
+                            <option value="mr-IN">🌐 मराठी (Marathi)</option>
+                            <option value="bn-IN">🌐 বাংলা (Bengali)</option>
+                            <option value="te-IN">🌐 తెలుగు (Telugu)</option>
+                            <option value="ta-IN">🌐 தமிழ் (Tamil)</option>
+                            <option value="kn-IN">🌐 ಕನ್ನಡ (Kannada)</option>
                         </select>
                         <button class="btn-reset-chat" onclick="resetChat()" title="Reset Session"><i class="fa-solid fa-rotate-right"></i></button>
                     </div>
@@ -1627,14 +1635,22 @@
 
                 <!-- Real Audio Waveform Bar (Active while recording or speaking) -->
                 <div class="audio-wave-bar" id="audioWaveBar">
-                    <span><i class="fa-solid fa-waveform-lines"></i> <span id="waveStatusText">Bhashini Dialect Speech Stream Active...</span></span>
-                    <div class="wave-lines">
-                        <div class="wave-line"></div>
-                        <div class="wave-line"></div>
-                        <div class="wave-line"></div>
-                        <div class="wave-line"></div>
-                        <div class="wave-line"></div>
+                    <span><i class="fa-solid fa-waveform-lines"></i> <span id="waveStatusText">Bhashini Voice Engine Active...</span></span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="wave-lines">
+                            <div class="wave-line"></div>
+                            <div class="wave-line"></div>
+                            <div class="wave-line"></div>
+                            <div class="wave-line"></div>
+                            <div class="wave-line"></div>
+                        </div>
+                        <button onclick="stopAllAudio()" style="background:#e63946; color:#ffffff; border:none; border-radius:14px; padding:3px 10px; font-size:11px; cursor:pointer; font-weight:800; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-stop"></i> Stop</button>
                     </div>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); padding:5px 16px; background:#f4faf6; border-bottom:1px solid var(--border-light); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                    <span><i class="fa-solid fa-microphone-lines" style="color:var(--accent);"></i> <strong>Smart Voice Commands:</strong> Try saying <em>'Wheat Rust'</em>, <em>'Search Rice'</em>, <em>'Clear Chat'</em>, <em>'Help'</em>, or <em>'Stop'</em></span>
+                    <span id="activeLangBadge" style="font-weight:700; color:var(--emerald); background:var(--mint); padding:2px 8px; border-radius:10px;">Language: Hindi (hi-IN)</span>
+                </div>
                 </div>
 
                 <!-- Message Window -->
@@ -2510,97 +2526,342 @@
         ];
 
         /* ============================================================= */
-        /* 2. CHATBOT STATE & CONTROLLERS                               */
+        /* 2. ADVANCED MULTILINGUAL & VOICE COMMAND ENGINE              */
         /* ============================================================= */
-        let currentDialect = "Mewari";
+        const SUPPORTED_LANGUAGES = {
+            'hi-IN': {
+                name: 'Hindi (हिंदी)',
+                bcp47: 'hi-IN',
+                greeting: 'नमस्ते किसान भाई! मैं आपका किसानवाणी वॉयस डॉक्टर हूँ। फसल की बीमारी या समस्या बोलकर बताएं।',
+                voiceCode: 'hi-IN',
+                searchKeywords: ['खोज', 'ढूंढो', 'सर्च', 'search', 'find'],
+                clearKeywords: ['साफ', 'हटाओ', 'क्लियर', 'रीसेट', 'clear', 'reset'],
+                helpKeywords: ['मदद', 'सहायता', 'हेल्प', 'help'],
+                stopKeywords: ['रुको', 'चुप', 'बंद', 'स्टॉप', 'stop']
+            },
+            'en-IN': {
+                name: 'English (India)',
+                bcp47: 'en-IN',
+                greeting: 'Hello Farmer! I am your KisanVaani Voice Doctor. Speak your crop disease or question.',
+                voiceCode: 'en-IN',
+                searchKeywords: ['search', 'find', 'lookup', 'show'],
+                clearKeywords: ['clear', 'reset', 'delete', 'clean'],
+                helpKeywords: ['help', 'guide', 'assist', 'how'],
+                stopKeywords: ['stop', 'quiet', 'pause', 'mute']
+            },
+            'mewari': {
+                name: 'Mewari (मेवाड़ी - राजस्थान)',
+                bcp47: 'hi-IN',
+                greeting: 'खम्मा घणी सा! मैं आपरो किसानवाणी डॉक्टर हूँ। फसल री बीमारी बोल ने बताओ, इलाज हाजिर है।',
+                voiceCode: 'hi-IN',
+                searchKeywords: ['खोजो', 'ढूंढो', 'search'],
+                clearKeywords: ['साफ करो', 'हटाओ', 'clear'],
+                helpKeywords: ['मदद', 'सहायता', 'help'],
+                stopKeywords: ['रुको', 'चुप', 'थम', 'stop']
+            },
+            'marwari': {
+                name: 'Marwari (मारवाड़ी - राजस्थान)',
+                bcp47: 'hi-IN',
+                greeting: 'राम राम सा! मैं आपरो किसानवाणी डॉक्टर हूँ। फसल में कांई बीमारी लाग्यी है, बोलर बताओ।',
+                voiceCode: 'hi-IN',
+                searchKeywords: ['ढूंढो', 'खोजो', 'search'],
+                clearKeywords: ['साफ करो', 'हटाओ', 'clear'],
+                helpKeywords: ['मदद', 'help'],
+                stopKeywords: ['रुको', 'चुप', 'stop']
+            },
+            'malvi': {
+                name: 'Malvi (मालवी - म.प्र./राजस्थान)',
+                bcp47: 'hi-IN',
+                greeting: 'राम राम भाई! मैं तुम्हारो किसानवाणी डॉक्टर। खेत में फसल की परेशानी बोल ने बताओ।',
+                voiceCode: 'hi-IN',
+                searchKeywords: ['खोज', 'ढूंढ', 'search'],
+                clearKeywords: ['साफ कर', 'clear'],
+                helpKeywords: ['मदद', 'help'],
+                stopKeywords: ['रुको', 'थम', 'stop']
+            },
+            'gu-IN': {
+                name: 'Gujarati (ગુજરાતી)',
+                bcp47: 'gu-IN',
+                greeting: 'નમસ્તે ખેડૂત મિત્ર! હું તમારો કિસાનવાણી ડોક્ટર છું. પાકની સમસ્યા બોલીને જણાવો.',
+                voiceCode: 'gu-IN',
+                searchKeywords: ['શોધો', 'શોધ', 'search'],
+                clearKeywords: ['સાફ કરો', 'clear', 'reset'],
+                helpKeywords: ['મદદ', 'સહાય', 'help'],
+                stopKeywords: ['રોકો', 'બંધ કરો', 'stop']
+            },
+            'pa-IN': {
+                name: 'Punjabi (ਪੰਜਾਬੀ)',
+                bcp47: 'pa-IN',
+                greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਕਿਸਾਨ ਵੀਰੋ! ਮੈਂ ਤੁਹਾਡਾ ਕਿਸਾਨਵਾਣੀ ਡਾਕਟਰ ਹਾਂ। ਫ਼ਸਲ ਦੀ ਸਮੱਸਿਆ ਬੋਲ ਕੇ ਦੱਸੋ।',
+                voiceCode: 'pa-IN',
+                searchKeywords: ['ਖੋਜੋ', 'ਲੱਭੋ', 'search'],
+                clearKeywords: ['ਸਾਫ਼ ਕਰੋ', 'clear', 'reset'],
+                helpKeywords: ['ਮਦਦ', 'help'],
+                stopKeywords: ['ਰੁਕੋ', 'ਬੰਦ', 'stop']
+            },
+            'mr-IN': {
+                name: 'Marathi (मराठी)',
+                bcp47: 'mr-IN',
+                greeting: 'नमस्कार शेतकरी बंधूंनो! मी तुमचा किसानवाणी डॉक्टर आहे. पिकाची समस्या बोलून सांगा.',
+                voiceCode: 'mr-IN',
+                searchKeywords: ['शोधा', 'शोध', 'search'],
+                clearKeywords: ['साफ करा', 'clear', 'reset'],
+                helpKeywords: ['मदत', 'help'],
+                stopKeywords: ['थांबा', 'बंद', 'stop']
+            },
+            'bn-IN': {
+                name: 'Bengali (বাংলা)',
+                bcp47: 'bn-IN',
+                greeting: 'নমস্কার কৃষক ভাই! আমি আপনার কিষাণবাণী ডাক্তার। ফসলের রোগ সম্পর্কে বলুন।',
+                voiceCode: 'bn-IN',
+                searchKeywords: ['খুঁজুন', 'অনুসন্ধান', 'search'],
+                clearKeywords: ['মুছুন', 'পরিষ্কার', 'clear'],
+                helpKeywords: ['সাহায্য', 'help'],
+                stopKeywords: ['থামুন', 'বন্ধ', 'stop']
+            },
+            'te-IN': {
+                name: 'Telugu (తెలుగు)',
+                bcp47: 'te-IN',
+                greeting: 'నమస్కారం రైతు సోదరులారా! నేను మీ కిసాన్ వాణి డాక్టర్. మీ పంట సమస్యను మాట్లాడి చెప్పండి.',
+                voiceCode: 'te-IN',
+                searchKeywords: ['వెతకండి', 'శోధన', 'search'],
+                clearKeywords: ['తుడవండి', 'క్లియర్', 'clear'],
+                helpKeywords: ['సహాయం', 'help'],
+                stopKeywords: ['ఆపండి', 'stop']
+            },
+            'ta-IN': {
+                name: 'Tamil (தமிழ்)',
+                bcp47: 'ta-IN',
+                greeting: 'வணக்கம் விவசாயி நண்பரே! நான் உங்கள் கிசான்வாணி மருத்துவர். பயிர் பிரச்சனையை பேசுங்கள்.',
+                voiceCode: 'ta-IN',
+                searchKeywords: ['தேடு', 'தேடுக', 'search'],
+                clearKeywords: ['அழி', 'clear'],
+                helpKeywords: ['உதவி', 'help'],
+                stopKeywords: ['நிறுத்து', 'stop']
+            },
+            'kn-IN': {
+                name: 'Kannada (ಕನ್ನಡ)',
+                bcp47: 'kn-IN',
+                greeting: 'ನಮಸ್ಕಾರ ರೈತ ಬಾಂಧವರೇ! ನಾನು ನಿಮ್ಮ ಕಿಸಾನ್ ವಾಣಿ ಡಾಕ್ಟರ್. ಬೆಳೆಯ ರೋಗ ಲಕ್ಷಣಗಳನ್ನು ಮಾತನಾಡಿ.',
+                voiceCode: 'kn-IN',
+                searchKeywords: ['ಹುಡುಕಿ', 'search'],
+                clearKeywords: ['ತೆರವುಗೊಳಿಸಿ', 'clear'],
+                helpKeywords: ['ಸಹಾಯ', 'help'],
+                stopKeywords: ['ನಿಲ್ಲಿಸಿ', 'stop']
+            }
+        };
+
+        let currentLangKey = 'hi-IN';
         let isRecording = false;
-        let speechRecognition = null;
+        let isSpeaking = false;
+        let recognition = null;
+        let isRecognitionActive = false;
         let currentUploadedImage = null;
 
-        // Initialize Speech Recognition if supported
         window.addEventListener('DOMContentLoaded', () => {
             renderAtlasGrid(PAN_INDIA_DISEASES);
-            initWebSpeech();
+            initSpeechEngine();
         });
 
-        function initWebSpeech() {
+        function initSpeechEngine() {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(SpeechRec) {
-                speechRecognition = new SpeechRec();
-                speechRecognition.continuous = false;
-                speechRecognition.interimResults = false;
-                speechRecognition.lang = 'hi-IN';
+            if (SpeechRec) {
+                recognition = new SpeechRec();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 3;
 
-                speechRecognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
+                recognition.onstart = () => {
+                    isRecognitionActive = true;
+                    const waveBar = document.getElementById('audioWaveBar');
+                    const waveText = document.getElementById('waveStatusText');
+                    waveBar.style.display = 'flex';
+                    waveText.innerText = 'Listening in ' + SUPPORTED_LANGUAGES[currentLangKey].name + '... Speak clearly.';
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
                     const input = document.getElementById('chatInputText');
-                    input.value = transcript;
-                    stopRecordingUI();
-                    submitUserMessage();
+                    if (interimTranscript) {
+                        input.placeholder = '🎙️ Listening: "' + interimTranscript + '"';
+                    }
+
+                    if (finalTranscript) {
+                        input.value = finalTranscript;
+                        stopRecordingUI();
+                        executeVoicePipeline(finalTranscript.trim());
+                    }
                 };
 
-                speechRecognition.onerror = (event) => {
-                    console.warn("Speech recognition error:", event.error);
+                recognition.onerror = (event) => {
+                    console.warn('Speech recognition error:', event.error);
                     stopRecordingUI();
+                    const input = document.getElementById('chatInputText');
+                    input.placeholder = 'Speak in dialect or describe crop issue...';
+
+                    if (event.error === 'not-allowed') {
+                        appendBotMessage('⚠️ <strong>Microphone Permission Blocked:</strong> Please allow microphone access in your browser address bar settings to use voice commands.');
+                    } else if (event.error === 'no-speech') {
+                        console.log('No speech detected.');
+                    }
                 };
 
-                speechRecognition.onend = () => {
+                recognition.onend = () => {
+                    isRecognitionActive = false;
                     stopRecordingUI();
                 };
             }
         }
 
-        function changeDialect(dialect) {
-            currentDialect = dialect;
-            appendBotMessage(`Dialect switched to <strong>${dialect}</strong>. I will formulate spoken remedies according to ${dialect} regional vernacular.`);
+        function changeLanguage(langKey) {
+            currentLangKey = langKey;
+            const langObj = SUPPORTED_LANGUAGES[langKey] || SUPPORTED_LANGUAGES['hi-IN'];
+            
+            // Update speech recognition language
+            if (recognition) {
+                recognition.lang = langObj.bcp47;
+            }
+
+            // Update UI badge
+            const badge = document.getElementById('activeLangBadge');
+            if (badge) {
+                badge.innerText = 'Language: ' + langObj.name;
+            }
+
+            appendBotMessage('🌐 Language switched to <strong>' + langObj.name + '</strong>.<br>' + langObj.greeting);
+            speakText(langObj.greeting, langObj.voiceCode);
         }
 
         function toggleVoiceRecording() {
+            // Stop TTS if speaking
+            stopAllAudio();
+
             const micBtn = document.getElementById('micBtn');
             const waveBar = document.getElementById('audioWaveBar');
             const waveText = document.getElementById('waveStatusText');
+            const langObj = SUPPORTED_LANGUAGES[currentLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
 
-            isRecording = !isRecording;
-
-            if(isRecording) {
+            if (!isRecording) {
+                isRecording = true;
                 micBtn.classList.add('recording');
                 waveBar.style.display = 'flex';
-                waveText.innerText = `Bhashini ASR Listening in ${currentDialect} Dialect... Speak now.`;
+                waveText.innerText = 'Bhashini ASR listening in ' + langObj.name + '... Speak now.';
 
-                if(speechRecognition) {
+                if (recognition) {
                     try {
-                        speechRecognition.start();
-                    } catch(e) {
-                        console.log("Speech recognition already running or permission pending.");
+                        recognition.lang = langObj.bcp47;
+                        recognition.start();
+                    } catch (e) {
+                        console.log('Recognition start error/already active:', e);
                     }
                 } else {
-                    // Fallback simulation for browsers without Web Speech API
+                    // Fallback simulation
                     setTimeout(() => {
-                        if(isRecording) {
-                            const samplePhrases = [
-                                "गेहूं री पत्तियां पीली पड़ री है अर पाउडर जैसो दिखै है...",
-                                "धान में पत्तियां जल री है अर नाव जैसे धब्बे दिखै है...",
-                                "कपास री पत्तियां ऊपर मुड़ री है अर सफेद मक्खी है...",
-                                "आलू री पत्तियों पर काला पानी जैसो धब्बा पड़ रियो है...",
-                                "मिर्च री पत्तियां चुरड़ा मुरड़ा होय री है अर फल सूख रिया है..."
+                        if (isRecording) {
+                            const samples = [
+                                'गेहूं में पीला रतुआ का इलाज बताओ',
+                                'धान में झुलसा रोग है क्या करें',
+                                'कपास में सफेद मक्खी और पत्ती मरोड़',
+                                'आलू में पछेता झुलसा दवाई बताओ',
+                                'search tomato blight'
                             ];
-                            const randomPhrase = samplePhrases[Math.floor(Math.random() * samplePhrases.length)];
-                            document.getElementById('chatInputText').value = randomPhrase;
+                            const picked = samples[Math.floor(Math.random() * samples.length)];
+                            document.getElementById('chatInputText').value = picked;
                             stopRecordingUI();
-                            submitUserMessage();
+                            executeVoicePipeline(picked);
                         }
-                    }, 2800);
+                    }, 2600);
                 }
             } else {
                 stopRecordingUI();
-                if(speechRecognition) speechRecognition.stop();
+                if (recognition && isRecognitionActive) {
+                    try { recognition.stop(); } catch (e) {}
+                }
             }
         }
 
         function stopRecordingUI() {
             isRecording = false;
-            document.getElementById('micBtn').classList.remove('recording');
-            document.getElementById('audioWaveBar').style.display = 'none';
+            const micBtn = document.getElementById('micBtn');
+            if (micBtn) micBtn.classList.remove('recording');
+            const waveBar = document.getElementById('audioWaveBar');
+            if (waveBar && !isSpeaking) waveBar.style.display = 'none';
+            const input = document.getElementById('chatInputText');
+            if (input) input.placeholder = 'Speak in dialect or describe crop issue...';
+        }
+
+        function stopAllAudio() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            isSpeaking = false;
+            const waveBar = document.getElementById('audioWaveBar');
+            if (waveBar && !isRecording) waveBar.style.display = 'none';
+        }
+
+        /* SMART VOICE COMMAND DISPATCHER */
+        function executeVoicePipeline(transcript) {
+            appendUserMessage(transcript);
+            const lower = transcript.toLowerCase();
+            const langObj = SUPPORTED_LANGUAGES[currentLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
+
+            // 1. Check STOP command
+            if (langObj.stopKeywords.some(k => lower.includes(k))) {
+                stopAllAudio();
+                appendBotMessage('⏹️ <strong>Audio Stopped.</strong> Voice fix stopped.');
+                return;
+            }
+
+            // 2. Check CLEAR / RESET command
+            if (langObj.clearKeywords.some(k => lower.includes(k))) {
+                resetChat();
+                speakText('Chat session reset.', langObj.voiceCode);
+                return;
+            }
+
+            // 3. Check HELP command
+            if (langObj.helpKeywords.some(k => lower.includes(k))) {
+                const helpMsg = '💡 <strong>Voice Commands Guide:</strong><br>' +
+                '• <strong>Diagnose:</strong> Say crop disease like <em>Wheat Rust</em>, <em>Paddy Blast</em>, <em>Cotton Curl</em>.<br>' +
+                '• <strong>Search Atlas:</strong> Say <em>Search Tomato</em>, <em>Khoj Sarson</em>.<br>' +
+                '• <strong>Controls:</strong> Say <em>Clear Chat</em>, <em>Stop Audio</em>.<br>' +
+                langObj.helpText;
+                appendBotMessage(helpMsg);
+                speakText(langObj.helpText, langObj.voiceCode);
+                return;
+            }
+
+            // 4. Check SEARCH command (e.g., "Search Cotton", "Khojo Wheat")
+            for (let kw of langObj.searchKeywords) {
+                if (lower.startsWith(kw) || lower.includes(' ' + kw)) {
+                    let term = lower.replace(kw, '').trim();
+                    if (term.length > 1) {
+                        const searchInput = document.getElementById('atlasSearchInput');
+                        if (searchInput) {
+                            searchInput.value = term;
+                            handleAtlasSearch();
+                            document.getElementById('disease-atlas').scrollIntoView({ behavior: 'smooth' });
+                            const notify = '🔍 <strong>Voice Search Action:</strong> Found results for "' + term + '" in Pan-India Atlas.';
+                            appendBotMessage(notify);
+                            speakText('Showing search results for ' + term + ' in Atlas', langObj.voiceCode);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // 5. Crop Disease Diagnosis
+            runTextDiagnosis(transcript);
         }
 
         function triggerQuickQuery(text) {
@@ -2614,12 +2875,12 @@
 
         function handleLeafPhoto(event) {
             const file = event.target.files[0];
-            if(!file) return;
+            if (!file) return;
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 currentUploadedImage = e.target.result;
-                appendUserMessage(`📷 Uploaded Leaf Photograph for Diagnosis:`, currentUploadedImage);
+                appendUserMessage('📷 Uploaded Leaf Photograph for Diagnosis:', currentUploadedImage);
                 runMultimodalVisionDiagnosis(file.name);
             };
             reader.readAsDataURL(file);
@@ -2628,12 +2889,10 @@
         function submitUserMessage() {
             const input = document.getElementById('chatInputText');
             const query = input.value.trim();
-            if(!query) return;
+            if (!query) return;
 
-            appendUserMessage(query);
             input.value = '';
-
-            runTextDiagnosis(query);
+            executeVoicePipeline(query);
         }
 
         function appendUserMessage(text, imgData = null) {
@@ -2642,14 +2901,11 @@
             row.className = 'chat-bubble-row user';
 
             let imgHtml = '';
-            if(imgData) {
-                imgHtml = `<br><img src="${imgData}" class="chat-image-preview" alt="Leaf Leaf Specimen">`;
+            if (imgData) {
+                imgHtml = '<br><img src="' + imgData + '" class="chat-image-preview" alt="Leaf Specimen">';
             }
 
-            row.innerHTML = `
-                <div class="chat-avatar"><i class="fa-solid fa-user"></i></div>
-                <div class="bubble-content">${text}${imgHtml}</div>
-            `;
+            row.innerHTML = '<div class="chat-avatar"><i class="fa-solid fa-user"></i></div><div class="bubble-content">' + text + imgHtml + '</div>';
             stream.appendChild(row);
             stream.scrollTop = stream.scrollHeight;
         }
@@ -2658,10 +2914,7 @@
             const stream = document.getElementById('chatStream');
             const row = document.createElement('div');
             row.className = 'chat-bubble-row bot';
-            row.innerHTML = `
-                <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
-                <div class="bubble-content">${html}</div>
-            `;
+            row.innerHTML = '<div class="chat-avatar"><i class="fa-solid fa-robot"></i></div><div class="bubble-content">' + html + '</div>';
             stream.appendChild(row);
             stream.scrollTop = stream.scrollHeight;
         }
@@ -2671,23 +2924,21 @@
             let bestMatch = null;
             let highestScore = 0;
 
-            for(let item of PAN_INDIA_DISEASES) {
+            for (let item of PAN_INDIA_DISEASES) {
                 let score = 0;
-                // Keywords check
-                if(q.includes(item.crop.toLowerCase().split(' ')[0])) score += 3;
-                if(q.includes(item.disease.toLowerCase())) score += 5;
-                if(q.includes(item.hindi.toLowerCase())) score += 5;
-                if(q.includes(item.pathogen.toLowerCase())) score += 2;
-                
-                // Symptom terms
-                const terms = ["rust", "blast", "blight", "curl", "smut", "wilt", "borer", "armyworm", "canker", "yellow", "whitefly", "thrips", "rot", "धब्बा", "झुलसा", "रतुआ", "इल्ली", "उकटा"];
-                for(let t of terms) {
-                    if(q.includes(t) && (item.disease.toLowerCase().includes(t) || item.hindi.toLowerCase().includes(t) || item.symptoms.toLowerCase().includes(t))) {
+                if (q.includes(item.crop.toLowerCase().split(' ')[0])) score += 4;
+                if (q.includes(item.disease.toLowerCase())) score += 6;
+                if (q.includes(item.hindi.toLowerCase())) score += 6;
+                if (q.includes(item.pathogen.toLowerCase())) score += 2;
+
+                const terms = ['rust', 'blast', 'blight', 'curl', 'smut', 'wilt', 'borer', 'armyworm', 'canker', 'yellow', 'whitefly', 'thrips', 'rot', 'धब्बा', 'झुलसा', 'रतुआ', 'इल्ली', 'उकटा', 'કીડો', 'ਰੋਗ', 'रोग'];
+                for (let t of terms) {
+                    if (q.includes(t) && (item.disease.toLowerCase().includes(t) || item.hindi.toLowerCase().includes(t) || item.symptoms.toLowerCase().includes(t))) {
                         score += 3;
                     }
                 }
 
-                if(score > highestScore) {
+                if (score > highestScore) {
                     highestScore = score;
                     bestMatch = item;
                 }
@@ -2697,31 +2948,31 @@
         }
 
         function runTextDiagnosis(query) {
-            showThinkingIndicator("KisanVaani RAG Engine is querying 55+ ICAR Disease Protocols & Bhashini ASR Dialect Corpus...");
+            const langObj = SUPPORTED_LANGUAGES[currentLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
+            showThinkingIndicator('KisanVaani RAG Engine is querying 55+ ICAR Disease Protocols in ' + langObj.name + '...');
 
             setTimeout(() => {
                 removeThinkingIndicator();
                 const matched = findBestMatchedDisease(query);
                 renderDiagnosisResult(matched);
-            }, 1300);
+            }, 1200);
         }
 
         function runMultimodalVisionDiagnosis(fileName) {
-            showThinkingIndicator("Analyzing Leaf Image: Preprocessing -> CNN Segmentation -> Pathogen Feature Matching...");
+            showThinkingIndicator('Analyzing Leaf Image: Preprocessing -> CNN Segmentation -> Pathogen Feature Matching...');
 
             setTimeout(() => {
                 removeThinkingIndicator();
-                // Pick a realistic disease match based on file name or default to Wheat Rust
                 let matched = PAN_INDIA_DISEASES[0];
                 const lower = fileName.toLowerCase();
-                for(let item of PAN_INDIA_DISEASES) {
-                    if(lower.includes(item.category) || lower.includes(item.disease.toLowerCase().split(' ')[0])) {
+                for (let item of PAN_INDIA_DISEASES) {
+                    if (lower.includes(item.category) || lower.includes(item.disease.toLowerCase().split(' ')[0])) {
                         matched = item;
                         break;
                     }
                 }
                 renderDiagnosisResult(matched);
-            }, 1800);
+            }, 1600);
         }
 
         function showThinkingIndicator(text) {
@@ -2729,110 +2980,130 @@
             const ind = document.createElement('div');
             ind.id = 'chatThinking';
             ind.className = 'chat-bubble-row bot';
-            ind.innerHTML = `
-                <div class="chat-avatar"><i class="fa-solid fa-sparkles"></i></div>
-                <div class="bubble-content" style="color:var(--text-muted); font-style:italic; display:flex; align-items:center; gap:8px;">
-                    <div class="vision-spinner" style="width:18px; height:18px; border-width:2px;"></div>
-                    <span>${text}</span>
-                </div>
-            `;
+            ind.innerHTML = '<div class="chat-avatar"><i class="fa-solid fa-sparkles"></i></div>' +
+                '<div class="bubble-content" style="color:var(--text-muted); font-style:italic; display:flex; align-items:center; gap:8px;">' +
+                '<div class="vision-spinner" style="width:18px; height:18px; border-width:2px;"></div>' +
+                '<span>' + text + '</span></div>';
             stream.appendChild(ind);
             stream.scrollTop = stream.scrollHeight;
         }
 
         function removeThinkingIndicator() {
             const ind = document.getElementById('chatThinking');
-            if(ind) ind.remove();
+            if (ind) ind.remove();
         }
 
         function renderDiagnosisResult(d) {
-            const audioTextEscaped = d.audio.replace(/'/g, "\\'");
-            const html = `
-                <div>
-                    <strong>Diagnosis Verified (${currentDialect} Dialect Engine):</strong>
-                    <div class="ai-diagnosis-card">
-                        <div class="diag-card-top">
-                            <div class="diag-card-title">
-                                <h4><i class="fa-solid fa-circle-check" style="color:var(--accent);"></i> ${d.disease}</h4>
-                                <span>${d.hindi} • <em>${d.latin}</em></span>
-                            </div>
-                            <div class="diag-badges">
-                                <span class="confidence-badge"><i class="fa-solid fa-shield-check"></i> 96.4% Conf</span>
-                                <span class="pathogen-pill">${d.pathogen.toUpperCase()}</span>
-                            </div>
-                        </div>
+            const langObj = SUPPORTED_LANGUAGES[currentLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
+            let advisoryToSpeak = d.audio;
+            if (currentLangKey === 'en-IN') {
+                advisoryToSpeak = d.disease + ' detected on ' + d.crop + '. ' + d.chemical;
+            }
 
-                        <div class="diag-section">
-                            <strong>🌾 Target Crop:</strong> ${d.crop}
-                        </div>
-                        <div class="diag-section">
-                            <strong>⚠️ Primary Symptom:</strong> ${d.symptoms}
-                        </div>
+            const audioEscaped = advisoryToSpeak.replace(/'/g, "\'");
+            const html = '<div>' +
+                '<strong>Diagnosis Verified (' + langObj.name + '):</strong>' +
+                '<div class="ai-diagnosis-card">' +
+                    '<div class="diag-card-top">' +
+                        '<div class="diag-card-title">' +
+                            '<h4><i class="fa-solid fa-circle-check" style="color:var(--accent);"></i> ' + d.disease + '</h4>' +
+                            '<span>' + d.hindi + ' • <em>' + d.latin + '</em></span>' +
+                        '</div>' +
+                        '<div class="diag-badges">' +
+                            '<span class="confidence-badge"><i class="fa-solid fa-shield-check"></i> 96.4% Conf</span>' +
+                            '<span class="pathogen-pill">' + d.pathogen.toUpperCase() + '</span>' +
+                        '</div>' +
+                    '</div>' +
 
-                        <div class="chemical-box">
-                            <strong>💊 ICAR Chemical Remedy (Safe Dosage):</strong><br>
-                            ${d.chemical}
-                        </div>
+                    '<div class="diag-section">' +
+                        '<strong>🌾 Target Crop:</strong> ' + d.crop +
+                    '</div>' +
+                    '<div class="diag-section">' +
+                        '<strong>⚠️ Primary Symptom:</strong> ' + d.symptoms +
+                    '</div>' +
 
-                        <div class="organic-box">
-                            <strong>🌱 100% Organic Alternative:</strong><br>
-                            ${d.organic}
-                        </div>
+                    '<div class="chemical-box">' +
+                        '<strong>💊 ICAR Chemical Remedy (Safe Dosage):</strong><br>' +
+                        d.chemical +
+                    '</div>' +
 
-                        <div class="spoken-player-widget">
-                            <div class="spoken-info">
-                                <i class="fa-solid fa-volume-high"></i>
-                                <span>Spoken Voice Advisory (${currentDialect})</span>
-                            </div>
-                            <button class="btn-play-voice" onclick="playNativeVoiceAdvisory('${audioTextEscaped}')">
-                                <i class="fa-solid fa-play"></i> Listen Voice Fix
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    '<div class="organic-box">' +
+                        '<strong>🌱 100% Organic Alternative:</strong><br>' +
+                        d.organic +
+                    '</div>' +
+
+                    '<div class="spoken-player-widget">' +
+                        '<div class="spoken-info">' +
+                            '<i class="fa-solid fa-volume-high"></i>' +
+                            '<span>Spoken Voice Advisory (' + langObj.name + ')</span>' +
+                        '</div>' +
+                        '<div style="display:flex; gap:6px;">' +
+                            '<button class="btn-play-voice" onclick="speakText(\'' + audioEscaped + '\', \'' + langObj.voiceCode + '\')">' +
+                                '<i class="fa-solid fa-play"></i> Listen Voice Fix' +
+                            '</button>' +
+                            '<button class="btn-play-voice" style="background:#e63946; color:#fff;" onclick="stopAllAudio()" title="Stop Audio">' +
+                                '<i class="fa-solid fa-stop"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
             appendBotMessage(html);
+
+            // Auto-speak advisory in the chosen language
+            speakText(advisoryToSpeak, langObj.voiceCode);
         }
 
-        function playNativeVoiceAdvisory(text) {
-            // Activate Audio waveform bar
+        function speakText(text, voiceCode) {
+            stopAllAudio();
+
             const waveBar = document.getElementById('audioWaveBar');
             const waveText = document.getElementById('waveStatusText');
-            waveBar.style.display = 'flex';
-            waveText.innerText = `Synthesizing IndicTTS Speech in ${currentDialect} Dialect...`;
+            if (waveBar) waveBar.style.display = 'flex';
+            if (waveText) waveText.innerText = 'Speaking voice advisory...';
+            isSpeaking = true;
 
-            if('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // cancel pending speech
+            if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'hi-IN';
-                utterance.rate = 0.9;
+                utterance.lang = voiceCode || 'hi-IN';
+                utterance.rate = 0.92;
                 utterance.pitch = 1.0;
 
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    const matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith((voiceCode || 'hi').substring(0, 2)));
+                    if (matchedVoice) utterance.voice = matchedVoice;
+                }
+
                 utterance.onend = () => {
-                    waveBar.style.display = 'none';
+                    isSpeaking = false;
+                    if (waveBar && !isRecording) waveBar.style.display = 'none';
                 };
                 utterance.onerror = () => {
-                    waveBar.style.display = 'none';
+                    isSpeaking = false;
+                    if (waveBar && !isRecording) waveBar.style.display = 'none';
                 };
 
                 window.speechSynthesis.speak(utterance);
             } else {
-                alert(`🔊 Spoken Voice Fix (${currentDialect} Dialect):\n\n"${text}"`);
-                setTimeout(() => waveBar.style.display = 'none', 3000);
+                alert('🔊 Spoken Advisory:\n\n"' + text + '"');
+                setTimeout(() => {
+                    isSpeaking = false;
+                    if (waveBar && !isRecording) waveBar.style.display = 'none';
+                }, 3000);
             }
         }
 
         function resetChat() {
+            stopAllAudio();
+            const langObj = SUPPORTED_LANGUAGES[currentLangKey] || SUPPORTED_LANGUAGES['hi-IN'];
             const stream = document.getElementById('chatStream');
-            stream.innerHTML = `
-                <div class="chat-bubble-row bot">
-                    <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bubble-content">
-                        <strong class="devanagari">खम्मा घणी सा! (राम राम सा!)</strong><br>
-                        Session reset. Speak or attach a leaf photo for instant crop diagnosis!
-                    </div>
-                </div>
-            `;
+            stream.innerHTML = '<div class="chat-bubble-row bot">' +
+                '<div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>' +
+                '<div class="bubble-content">' +
+                    '<strong class="devanagari">' + langObj.greeting + '</strong><br>' +
+                    'Speak in your language, ask a voice command, or attach a leaf photograph!' +
+                '</div></div>';
         }
 
         function focusChatInput() {
